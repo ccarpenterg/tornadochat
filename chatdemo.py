@@ -23,6 +23,8 @@ import tornado.web
 import os.path
 import uuid
 
+from mixins import MessageMixin
+
 from tornado.options import define, options
 
 define("port", default=8888, help="run on the given port", type=int)
@@ -59,43 +61,6 @@ class MainHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self):
         self.render("index.html", messages=MessageMixin.cache)
-
-
-class MessageMixin(object):
-    waiters = set()
-    cache = []
-    cache_size = 200
-
-    def wait_for_messages(self, callback, cursor=None):
-        cls = MessageMixin
-        if cursor:
-            index = 0
-            for i in xrange(len(cls.cache)):
-                index = len(cls.cache) - i - 1
-                if cls.cache[index]["id"] == cursor: break
-            recent = cls.cache[index + 1:]
-            if recent:
-                callback(recent)
-                return
-        cls.waiters.add(callback)
-
-    def cancel_wait(self, callback):
-        cls = MessageMixin
-        cls.waiters.remove(callback)
-
-    def new_messages(self, messages):
-        cls = MessageMixin
-        logging.info("Sending new message to %r listeners", len(cls.waiters))
-        for callback in cls.waiters:
-            try:
-                callback(messages)
-            except:
-                logging.error("Error in waiter callback", exc_info=True)
-        cls.waiters = set()
-        cls.cache.extend(messages)
-        if len(cls.cache) > self.cache_size:
-            cls.cache = cls.cache[-self.cache_size:]
-
 
 class MessageNewHandler(BaseHandler, MessageMixin):
     @tornado.web.authenticated
