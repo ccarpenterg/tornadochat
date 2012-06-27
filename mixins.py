@@ -59,7 +59,7 @@ class ChannelMixin(object):
                 return
         cls.channels[channel]['waiters'].add(callback)
 
-    def cancel_wait(self, callback):
+    def cancel_wait(self, callback, channel):
         cls = ChannelMixin
         cls.channels[channel]['waiters'].remove(callback)
 
