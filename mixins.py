@@ -1,4 +1,10 @@
 import logging
+from hashlib import md5
+
+def create_hash(value):
+    m = md5()
+    m.update(value)
+    return m.hexdigest()
 
 class MessageMixin(object):
     waiters = set()
@@ -39,12 +45,15 @@ class ChannelMixin(object):
     channels = dict()
     cache_size = 200
 
-    def create_channel(self, channel):
+    def create_channel(self, name):
         cls = ChannelMixin
+        channel = create_hash(name)
         cls.channels[channel] = dict()
+        cls.channels[channel] = name
         cls.channels[channel]['waiters'] = set()
         cls.channels[channel]['cache'] = []
         cls.channels[channel]['cache_size'] = 200
+        return channel
 
     def wait_for_messages(self, callback, channel, cursor=None):
         cls = ChannelMixin
