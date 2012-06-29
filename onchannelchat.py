@@ -87,7 +87,7 @@ class JoinChannelHandler(BaseHandler, ChannelMixin):
 
     @tornado.web.authenticated
     def post(self):
-        self.clear_cokkie("channel")
+        self.clear_cookie("channel")
         channel = self.get_argument("channel")
         self.set_secure_cookie("channel", channel)
         self.redirect("/")
@@ -105,7 +105,8 @@ class MessageNewHandler(BaseHandler, ChannelMixin):
             self.redirect(self.get_argument("next"))
         else:
             self.write(message)
-        self.new_messages([message])
+        channel = self.get_secure_cookie("channel")
+        self.new_messages(channel, [message])
 
 
 class MessageUpdatesHandler(BaseHandler, ChannelMixin):

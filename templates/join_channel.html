@@ -23,6 +23,9 @@
                 <input type="hidden" name="next" value="{{ request.path }}"/>
                 {% module xsrf_form_html() %}
               </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Join</button>
+              </div>
             </fieldset>
           </form>
         </div>

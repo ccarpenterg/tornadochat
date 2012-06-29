@@ -74,7 +74,7 @@ class ChannelMixin(object):
 
     def new_messages(self, channel, messages):
         cls = ChannelMixin
-        logging.info("Sending new message to %r listeners", len(cls.waiters))
+        logging.info("Sending new message to %r listeners", len(cls.channels[channel]['waiters']))
         for callback in cls.channels[channel]['waiters']:
             try:
                 callback(messages)
