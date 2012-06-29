@@ -23,7 +23,7 @@ import tornado.web
 import os.path
 import uuid
 
-from mixins import MessageMixin
+from mixins import ChannelMixin
 
 from tornado.options import define, options
 
@@ -36,6 +36,8 @@ class Application(tornado.web.Application):
             (r"/", MainHandler),
             (r"/auth/login", AuthLoginHandler),
             (r"/auth/logout", AuthLogoutHandler),
+            (r"/create", ChannelNewHandler),
+            (r"/join", JoinChannelHandler),
             (r"/a/message/new", MessageNewHandler),
             (r"/a/message/updates", MessageUpdatesHandler),
         ]
@@ -71,6 +73,7 @@ class ChannelNewHandler(BaseHandler, ChannelMixin):
     def get(self):
         self.render("create_channel.html")
 
+    @tornado.web.authenticated
     def post(self):
         name = self.get_argument("name")
         channel = self.create_channel(name)
@@ -82,12 +85,14 @@ class JoinChannelHandler(BaseHandler, ChannelMixin):
     def get(self):
         self.render("join_channel.html", channels=ChannelMixin.channels.keys())
 
+    @tornado.web.authenticated
     def post(self):
+        self.clear_cokkie("channel")
         channel = self.get_argument("channel")
         self.set_secure_cookie("channel", channel)
         self.redirect("/")
 
-class MessageNewHandler(BaseHandler, MessageMixin):
+class MessageNewHandler(BaseHandler, ChannelMixin):
     @tornado.web.authenticated
     def post(self):
         message = {
@@ -103,12 +108,14 @@ class MessageNewHandler(BaseHandler, MessageMixin):
         self.new_messages([message])
 
 
-class MessageUpdatesHandler(BaseHandler, MessageMixin):
+class MessageUpdatesHandler(BaseHandler, ChannelMixin):
     @tornado.web.authenticated
     @tornado.web.asynchronous
     def post(self):
+        channel = self.get_secure_cookie("channel")
         cursor = self.get_argument("cursor", None)
         self.wait_for_messages(self.on_new_messages,
+                               channel,
                                cursor=cursor)
 
     def on_new_messages(self, messages):

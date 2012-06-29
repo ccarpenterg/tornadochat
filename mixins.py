@@ -49,7 +49,7 @@ class ChannelMixin(object):
         cls = ChannelMixin
         channel = create_hash(name)
         cls.channels[channel] = dict()
-        cls.channels[channel] = name
+        cls.channels[channel]['name'] = name
         cls.channels[channel]['waiters'] = set()
         cls.channels[channel]['cache'] = []
         cls.channels[channel]['cache_size'] = 200

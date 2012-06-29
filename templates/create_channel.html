@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <title>Tornado Create Channels</title>
+    <link href="/static/bootstrap.css" rel="stylesheet">
+  </head>
+  <body>
+    <div id="channels">
+      <div class="container">
+        <div class="row">
+          <form method="post" action="/create">
+            <input type="text" class="input-medium search-query" name="name">
+            <button type="submit" class="btn">Create</button>
+            <input type="hidden" name="next" value="{{ request.path }}"/>
+            {% module xsrf_form_html() %}
+          </form>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
