@@ -16,6 +16,7 @@
 
 import logging
 import tornado.auth
+import tornado.httpserver
 import tornado.escape
 import tornado.ioloop
 import tornado.options
@@ -152,9 +153,8 @@ class AuthLogoutHandler(BaseHandler):
 
 
 def main():
-    tornado.options.parse_command_line()
-    app = Application()
-    app.listen(options.port)
+    http_server = tornado.httpserver.HTTPServer(Application())
+    http_server.listen(8888)
     tornado.ioloop.IOLoop.instance().start()
 
 
