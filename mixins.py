@@ -9,6 +9,7 @@ def create_hash(value):
 class ChannelMixin(object):
     channels = dict()
     cache_size = 200
+    channels['timestamp'] = None
 
     def create_channel(self, name):
         cls = ChannelMixin
@@ -37,16 +38,18 @@ class ChannelMixin(object):
         cls = ChannelMixin
         cls.channels[channel]['waiters'].remove(callback)
 
-    def new_messages(self, channel, messages):
+    def new_messages(self, messages):
         cls = ChannelMixin
         logging.info("Sending new message to %r listeners", len(cls.channels[channel]['waiters']))
-        for callback in cls.channels[channel]['waiters']:
-            try:
-                callback(messages)
-            except:
-                logging.error("Error in waiter callback", exc_info=True)
-        cls.channels[channel]['waiters'] = set()
-        cls.channels[channel]['cache'].extend(messages)
-        if len(cls.channels[channel]['cache']) > self.cache_size:
-            cls.channels[channel]['cache'] = cls.channels[channel]['cache'][-self.cache_size:]
+        for channel in messages.keys():
+            for callback in cls.channels[channel]['waiters']:
+                try:
+                    callback(messages[channel])
+                except:
+                    logging.error("Error in waiter callback", exc_info=True)
+        for channel in messages.keys():
+            cls.channels[channel]['waiters'] = set()
+            cls.channels[channel]['cache'].extend(messages)
+            if len(cls.channels[channel]['cache']) > self.cache_size:
+                cls.channels[channel]['cache'] = cls.channels[channel]['cache'][-self.cache_size:]
 

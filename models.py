@@ -15,16 +15,16 @@ class Channel(Base):
     name = Column(String(32))
     hash_value = Column(String(32), nullable=True)
 
-class Conversation(Base):
+class Chat(Base):
     __tablename__ = 'conversations'
 
     id = Column(Integer, primary_key=True)
     user = Column(String(64), nullable=True)
-    chat = Column(String(1024), nullable=True)
+    message = Column(String(1024), nullable=True)
     timestamp = Column(Integer, nullable=True)
     channel_id = Column(Integer, ForeignKey('channels.id'))
 
-engine = create_engine('postgresql://' + USER + ':' + PASSWORD + '@localhost/slg')
+engine = create_engine('postgresql://' + USER + ':' + PASSWORD + '@localhost/chat')
 
 Base.metadata.create_all(engine)
 

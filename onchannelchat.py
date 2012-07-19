@@ -30,6 +30,7 @@ from tornado.options import define, options
 
 define("port", default=8888, help="run on the given port", type=int)
 
+db = scoped_session(sessionmaker(bind=engine))
 
 class Application(tornado.web.Application):
     def __init__(self):
@@ -52,13 +53,17 @@ class Application(tornado.web.Application):
         )
         tornado.web.Application.__init__(self, handlers, **settings)
 
+        self.db = db
 
 class BaseHandler(tornado.web.RequestHandler):
+    @property
+    def db(self):
+        return self.application.db
+
     def get_current_user(self):
         user_json = self.get_secure_cookie("user")
         if not user_json: return None
         return tornado.escape.json_decode(user_json)
-
 
 class MainHandler(BaseHandler):
     @tornado.web.authenticated
@@ -107,8 +112,20 @@ class MessageNewHandler(BaseHandler, ChannelMixin):
         else:
             self.write(message)
         channel = self.get_secure_cookie("channel")
-        self.new_messages(channel, [message])
 
+class Updater(ChannelMixin):
+    @property
+    def db(self):
+        return db
+
+    def poll(self):
+        timestamp = self.channels['timestamp'] or 0
+        query = self.db.query(Message).filter_by(timestamp > timestamp).order_by(Message.timestamp)
+        messages = SuperDict([])
+        for msg in query:
+            messages[msg.channel].append(msg.message)
+        self.new_messages(messages)
+        tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(0.00001), self.poll)
 
 class MessageUpdatesHandler(BaseHandler, ChannelMixin):
     @tornado.web.authenticated
@@ -155,6 +172,10 @@ class AuthLogoutHandler(BaseHandler):
 def main():
     http_server = tornado.httpserver.HTTPServer(Application())
     http_server.listen(8888)
+    updater = Updater()
+    tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(0.00001), updater.poll)
+    #poll = tornado.ioloop.PeriodicCallback(updater.poll, datetime.timedelta(0.00001))
+    #poll.start()
     tornado.ioloop.IOLoop.instance().start()
 
 
