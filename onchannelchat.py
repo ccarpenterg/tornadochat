@@ -82,8 +82,12 @@ class ChannelNewHandler(BaseHandler, ChannelMixin):
     @tornado.web.authenticated
     def post(self):
         name = self.get_argument("name")
-        channel = self.create_channel(name)
-        self.set_secure_cookie("channel", channel)
+        self.set_channel(name)
+        self.set_secure_cookie("channel", name)
+        channel = Channel()
+        channel.name = name
+        self.db.add(channel)
+        self.db.commit()
         self.redirect("/")
 
 class JoinChannelHandler(BaseHandler, ChannelMixin):

@@ -13,7 +13,6 @@ class Channel(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(32))
-    hash_value = Column(String(32), nullable=True)
 
 class Chat(Base):
     __tablename__ = 'conversations'
