@@ -22,9 +22,13 @@ import tornado.ioloop
 import tornado.options
 import tornado.web
 import os.path
-import uuid
+import uuid, datetime, time
+
+from models import *
+from sqlalchemy.orm import scoped_session, sessionmaker
 
 from mixins import ChannelMixin
+from util import SuperDict
 
 from tornado.options import define, options
 
@@ -38,6 +42,7 @@ class Application(tornado.web.Application):
             (r"/", MainHandler),
             (r"/auth/login", AuthLoginHandler),
             (r"/auth/logout", AuthLogoutHandler),
+            (r"/chat/([0-9]+)", ChatHandler),
             (r"/create", ChannelNewHandler),
             (r"/join", JoinChannelHandler),
             (r"/a/message/new", MessageNewHandler),
@@ -65,14 +70,21 @@ class BaseHandler(tornado.web.RequestHandler):
         if not user_json: return None
         return tornado.escape.json_decode(user_json)
 
-class MainHandler(BaseHandler):
+class MainHandler(BaseHandler, ChannelMixin):
     @tornado.web.authenticated
     def get(self):
-        channel = self.get_secure_cookie("channel")
-        if not channel:
-            self.redirect("/create")
-            return
-        self.render("index.html", messages=ChannelMixin.channels[channel]["cache"])
+        channel = Channel()
+        self.db.add(channel)
+        self.db.commit()
+        self.set_channel(channel.id)
+        self.redirect('/chat/%d' % channel.id)
+        return
+
+class ChatHandler(BaseHandler):
+    @tornado.web.authenticated
+    def get(self, channel):
+        self.set_secure_cookie("channel", channel)
+        self.render("index.html", messages=ChannelMixin.store.lrange('channel:cache:%s' % channel, 0, -1))
 
 class ChannelNewHandler(BaseHandler, ChannelMixin):
     @tornado.web.authenticated
@@ -114,8 +126,14 @@ class MessageNewHandler(BaseHandler, ChannelMixin):
         if self.get_argument("next", None):
             self.redirect(self.get_argument("next"))
         else:
+            channel = self.get_secure_cookie("channel")
+            chat = Chat()
+            chat.json = tornado.escape.json_encode(message)
+            chat.timestamp = int(time.time()*10**6)
+            chat.channel_id = int(channel)
+            self.db.add(chat)
+            self.db.commit()
             self.write(message)
-        channel = self.get_secure_cookie("channel")
 
 class Updater(ChannelMixin):
     @property
@@ -123,11 +141,12 @@ class Updater(ChannelMixin):
         return db
 
     def poll(self):
-        timestamp = self.channels['timestamp'] or 0
-        query = self.db.query(Message).filter_by(timestamp > timestamp).order_by(Message.timestamp)
+        timestamp = self.timestamp or 0
+        query = self.db.query(Chat).filter(Chat.timestamp > timestamp).order_by(Chat.timestamp)
         messages = SuperDict([])
-        for msg in query:
-            messages[msg.channel].append(msg.message)
+        for chat in query:
+            messages[chat.channel_id].append(tornado.escape.json_decode(chat.json))
+        if  query.count() > 0: self.timestamp = query[-1].timestamp
         self.new_messages(messages)
         tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(0.00001), self.poll)
 
@@ -138,7 +157,7 @@ class MessageUpdatesHandler(BaseHandler, ChannelMixin):
         channel = self.get_secure_cookie("channel")
         cursor = self.get_argument("cursor", None)
         self.wait_for_messages(self.on_new_messages,
-                               channel,
+                               int(channel),
                                cursor=cursor)
 
     def on_new_messages(self, messages):
@@ -164,7 +183,7 @@ class AuthLoginHandler(BaseHandler, tornado.auth.GoogleMixin):
         if not user:
             raise tornado.web.HTTPError(500, "Google auth failed")
         self.set_secure_cookie("user", tornado.escape.json_encode(user))
-        self.redirect("/")
+        self.redirect(self.get_argument("next"))
 
 
 class AuthLogoutHandler(BaseHandler):

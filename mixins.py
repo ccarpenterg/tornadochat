@@ -1,5 +1,6 @@
 import logging, redis
 from hashlib import md5
+import tornado.escape
 
 def create_hash(value):
     m = md5()
@@ -7,12 +8,12 @@ def create_hash(value):
     return m.hexdigest()
 
 class ChannelMixin(object):
-    store = Redis(host='localhost', port=6379, db=0)
+    store = redis.Redis(host='localhost', port=6379, db=0)
     channels = dict()
     cache_size = 200
     timestamp = None
 
-    def set_channel(self, name):
+    def set_channel(self, channel):
         cls = ChannelMixin
         cls.channels[channel] = dict()
         cls.channels[channel]['waiters'] = set()
@@ -24,7 +25,7 @@ class ChannelMixin(object):
             index = 0
             for i in xrange(len(cache)):
                 index = len(cache) - i - 1
-                if cache[index]["id"] == cursor: break
+                if tornado.escape.json_decode(cache[index])["id"] == cursor: break
             recent = cache[index + 1:]
             if recent:
                 callback(recent)
@@ -37,7 +38,7 @@ class ChannelMixin(object):
 
     def new_messages(self, messages):
         cls = ChannelMixin
-        listeners = sum(map(lambda key: len(cls.channels[key]['waiters']), channels.keys()))
+        listeners = sum(map(lambda key: len(cls.channels[key]['waiters']), cls.channels.keys()))
         logging.info("Sending new message to %r listeners", listeners)
         for channel in messages.keys():
             for callback in cls.channels[channel]['waiters']:
@@ -48,7 +49,7 @@ class ChannelMixin(object):
         for channel in messages.keys():
             cls.channels[channel]['waiters'] = set()
             for msg in messages[channel]:
-                cls.store.rpush('channel:cache:%s' % channel, msg)
+                cls.store.rpush('channel:cache:%s' % channel, tornado.escape.json_encode(msg))
             if cls.store.llen('channel:cache:%s' % channel) > cls.cache_size:
                 cls.store.ltrim('channel:cache%s' % channel, -cls.cache_size, -1)
 

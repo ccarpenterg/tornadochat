@@ -12,8 +12,9 @@
     </div>
     <div id="body">
       <div id="inbox">
+        {% import tornado.escape %}
         {% for message in messages %}
-          {% module Template("message.html", message=message) %}
+          {% module Template("message.html", message=tornado.escape.json_decode(message)) %}
         {% end %}
       </div>
       <div id="input">
