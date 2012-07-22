@@ -168,7 +168,7 @@ class MessageUpdatesHandler(BaseHandler, ChannelMixin):
 
     def on_connection_close(self):
         channel = self.get_secure_cookie("channel")
-        self.cancel_wait(self.on_new_messages, channel)
+        self.cancel_wait(self.on_new_messages, int(channel))
 
 
 class AuthLoginHandler(BaseHandler, tornado.auth.GoogleMixin):
@@ -193,6 +193,7 @@ class AuthLogoutHandler(BaseHandler):
 
 
 def main():
+    tornado.options.parse_command_line()
     http_server = tornado.httpserver.HTTPServer(Application())
     http_server.listen(8888)
     updater = Updater()
