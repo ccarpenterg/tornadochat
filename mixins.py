@@ -37,7 +37,7 @@ class ChannelMixin(object):
 
     def new_messages(self, messages):
         cls = ChannelMixin
-        listeners = sum(map(lambda key: len(cls.channels[key]), channels.keys()))
+        listeners = sum(map(lambda key: len(cls.channels[key]['waiters']), channels.keys()))
         logging.info("Sending new message to %r listeners", listeners)
         for channel in messages.keys():
             for callback in cls.channels[channel]['waiters']:
