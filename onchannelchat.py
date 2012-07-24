@@ -136,12 +136,15 @@ class MessageNewHandler(BaseHandler, ChannelMixin):
             self.write(message)
 
 class Updater(ChannelMixin):
+    def __init__(self, start):
+        self.start = start        
+
     @property
     def db(self):
         return db
 
     def poll(self):
-        timestamp = self.timestamp or 0
+        timestamp = self.timestamp or self.start
         query = self.db.query(Chat).filter(Chat.timestamp > timestamp).order_by(Chat.timestamp)
         messages = SuperDict([])
         for chat in query:
@@ -195,8 +198,8 @@ class AuthLogoutHandler(BaseHandler):
 def main():
     tornado.options.parse_command_line()
     http_server = tornado.httpserver.HTTPServer(Application())
-    http_server.listen(8888)
-    updater = Updater()
+    http_server.listen(options.port)
+    updater = Updater(int(time.time()*10**6))
     tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(0.00001), updater.poll)
     #poll = tornado.ioloop.PeriodicCallback(updater.poll, datetime.timedelta(0.00001))
     #poll.start()

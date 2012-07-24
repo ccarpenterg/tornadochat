@@ -1,21 +1,16 @@
 import logging, redis
-from hashlib import md5
 import tornado.escape
-
-def create_hash(value):
-    m = md5()
-    m.update(value)
-    return m.hexdigest()
+from util import SuperDict
 
 class ChannelMixin(object):
     store = redis.Redis(host='localhost', port=6379, db=0)
-    channels = dict()
+    channels = SuperDict(dict())
     cache_size = 200
     timestamp = None
 
     def set_channel(self, channel):
         cls = ChannelMixin
-        cls.channels[channel] = dict()
+        cls.channels[channel] = SuperDict(dict())
         cls.channels[channel]['waiters'] = set()
 
     def wait_for_messages(self, callback, channel, cursor=None):
@@ -30,7 +25,8 @@ class ChannelMixin(object):
             if recent:
                 callback(recent)
                 return
-        cls.channels[channel]['waiters'].add(callback)
+        #cls.channels[channel]['waiters'].add(callback)
+        cls.channels[channel].setdefault('waiters', set()).add(callback)
 
     def cancel_wait(self, callback, channel):
         cls = ChannelMixin
