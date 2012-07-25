@@ -46,8 +46,12 @@ class ChannelMixin(object):
                     logging.error("Error in waiter callback", exc_info=True)
         for channel in channels:
             cls.channels[channel]['waiters'] = set()
-            for msg in messages[channel]:
-                cls.store.rpush('channel:cache:%s' % channel, tornado.escape.json_encode(msg))
-            if cls.store.llen('channel:cache:%s' % channel) > cls.cache_size:
-                cls.store.ltrim('channel:cache%s' % channel, -cls.cache_size, -1)
+
+    def build_cache(self, messages):
+        cls = ChannelMixin
+        for channel in messages.keys():
+            logging.info("Building cache for channel %s", channel)
+            cls.store.delete('channel:cache:%s' % channel)
+            for chat in messages[channel]:
+                cls.store.rpush('channel:cache:%s' % channel, tornado.escape.json_encode(chat))
 
