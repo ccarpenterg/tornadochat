@@ -155,17 +155,6 @@ class Updater(ChannelMixin):
         self.new_messages(messages)
         tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(0.00001), self.poll)
 
-    def update_cache(self):
-        timestamp = self.timestamp or self.start
-        channels = self.db.query(Chat).filter(Chat.timestamp > timestamp).distinct('channel_id')
-        logging.info("Updating cache on %d for %d channels", timestamp, channels.count())
-        messages = SuperDict([])
-        for channel in channels:
-            for chat in self.db.query(Chat).filter(Chat.channel_id == channel.channel_id).order_by(Chat.timestamp).limit(CACHE_SIZE):
-                messages[channel.channel_id].append(tornado.escape.json_decode(chat.json))
-        self.build_cache(messages)
-        tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(0.00001), self.update_cache)
-
 class MessageUpdatesHandler(BaseHandler, ChannelMixin):
     @tornado.web.authenticated
     @tornado.web.asynchronous
@@ -213,7 +202,6 @@ def main():
     http_server = tornado.httpserver.HTTPServer(Application())
     http_server.listen(options.port)
     updater = Updater(int(time.time()*10**6))
-    tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(0.00001), updater.update_cache)
     tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(0.00001), updater.poll)
     tornado.ioloop.IOLoop.instance().start()
 
