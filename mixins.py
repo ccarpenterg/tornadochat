@@ -34,15 +34,17 @@ class ChannelMixin(object):
 
     def new_messages(self, messages):
         cls = ChannelMixin
+        incumbents = set(cls.channels.keys())
+        channels = incumbents & set(messages.keys())
         listeners = sum(map(lambda key: len(cls.channels[key]['waiters']), cls.channels.keys()))
         logging.info("Sending new message to %r listeners", listeners)
-        for channel in messages.keys():
+        for channel in channels:
             for callback in cls.channels[channel]['waiters']:
                 try:
                     callback(messages[channel])
                 except:
                     logging.error("Error in waiter callback", exc_info=True)
-        for channel in messages.keys():
+        for channel in channels:
             cls.channels[channel]['waiters'] = set()
             for msg in messages[channel]:
                 cls.store.rpush('channel:cache:%s' % channel, tornado.escape.json_encode(msg))
