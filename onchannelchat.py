@@ -152,8 +152,9 @@ class Updater(ChannelMixin):
         messages = SuperDict([])
         for chat in query:
             messages[chat.channel_id].append(tornado.escape.json_decode(chat.json))
-        if query.count() > 0: self.timestamp = query[-1].timestamp
-        self.new_messages(messages)
+        if query.count() > 0: 
+            self.timestamp = query[-1].timestamp
+            self.new_messages(messages)
         tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(0.00001), self.poll)
 
 class MessageUpdatesHandler(BaseHandler, ChannelMixin):
