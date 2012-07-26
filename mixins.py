@@ -16,7 +16,7 @@ class ChannelMixin(object):
     def wait_for_messages(self, callback, channel, cursor=None):
         cls = ChannelMixin
         if cursor:
-            cache = cls.store.lrange('channel:cache:%s' % channel, 0, -1)
+            cache = cls.store.lrange('channel:cache:%s:pid:%s' % (channel, cls.pid), 0, -1)
             index = 0
             for i in xrange(len(cache)):
                 index = len(cache) - i - 1
@@ -39,6 +39,7 @@ class ChannelMixin(object):
         listeners = sum(map(lambda key: len(cls.channels[key]['waiters']), cls.channels.keys()))
         logging.info("Sending new message to %r listeners", listeners)
         for channel in channels:
+            logging.info("Sending %s new messages to channel %s", len(messages[channel]), channel)
             for callback in cls.channels[channel]['waiters']:
                 try:
                     callback(messages[channel])
@@ -46,6 +47,9 @@ class ChannelMixin(object):
                     logging.error("Error in waiter callback", exc_info=True)
         for channel in channels:
             cls.channels[channel]['waiters'] = set()
+        for channel in messages.keys():
+            for chat in messages[channel]:
+                cls.store.rpush('channel:cache:%s:pid:%s' % (channel, cls.pid), tornado.escape.json_encode(chat))
 
     def build_cache(self, messages):
         cls = ChannelMixin

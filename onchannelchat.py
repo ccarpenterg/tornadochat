@@ -33,6 +33,7 @@ from util import SuperDict
 from tornado.options import define, options
 
 define("port", default=8888, help="run on the given port", type=int)
+define("id", help="server id or name", type=str)
 
 CACHE_SIZE = 200
 
@@ -86,7 +87,7 @@ class ChatHandler(BaseHandler):
     @tornado.web.authenticated
     def get(self, channel):
         self.set_secure_cookie("channel", channel)
-        self.render("index.html", messages=ChannelMixin.store.lrange('channel:cache:%s' % channel, 0, -1))
+        self.render("index.html", messages=ChannelMixin.store.lrange('channel:cache:%s:pid:%s' % (channel, ChannelMixin.pid), 0, -1))
 
 class ChannelNewHandler(BaseHandler, ChannelMixin):
     @tornado.web.authenticated
@@ -151,7 +152,7 @@ class Updater(ChannelMixin):
         messages = SuperDict([])
         for chat in query:
             messages[chat.channel_id].append(tornado.escape.json_decode(chat.json))
-        if  query.count() > 0: self.timestamp = query[-1].timestamp
+        if query.count() > 0: self.timestamp = query[-1].timestamp
         self.new_messages(messages)
         tornado.ioloop.IOLoop.instance().add_timeout(datetime.timedelta(0.00001), self.poll)
 
@@ -199,6 +200,7 @@ class AuthLogoutHandler(BaseHandler):
 
 def main():
     tornado.options.parse_command_line()
+    ChannelMixin.pid = options.id
     http_server = tornado.httpserver.HTTPServer(Application())
     http_server.listen(options.port)
     updater = Updater(int(time.time()*10**6))
