@@ -26,6 +26,7 @@ class ChannelMixin(object):
             for chat in recent:
                 messages.append(tornado.escape.json_decode(chat))
             if recent:
+                logging.info("Sending %r msgs from wait_for_messages for cursor: %s", len(messages), cursor)
                 callback(messages)
                 return
         #cls.channels[channel]['waiters'].add(callback)
