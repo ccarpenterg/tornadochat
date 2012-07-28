@@ -22,8 +22,11 @@ class ChannelMixin(object):
                 index = len(cache) - i - 1
                 if tornado.escape.json_decode(cache[index])["id"] == cursor: break
             recent = cache[index + 1:]
+            messages = []
+            for chat in recent:
+                messages.append(tornado.escape.json_decode(chat))
             if recent:
-                callback(recent)
+                callback(messages)
                 return
         #cls.channels[channel]['waiters'].add(callback)
         cls.channels[channel].setdefault('waiters', set()).add(callback)
