@@ -28,14 +28,24 @@ if __name__ == '__main__':
         "body": options.msg,
     }
 
-    #message['html'] = loader.load("message.html").generate(message=message)
     message['html'] = tornado.template.Template(
         '<div class="message" id="m{{ message["id"] }}"><b>{{ message["from"] }}: </b>{{ message["body"] }}</div>'
     ).generate(message=message)
 
-    chat = Chat()
-    chat.json = tornado.escape.json_encode(message)
-    chat.timestamp = int(time.time()*10**6)
-    chat.channel_id = options.channel
-    db.add(chat)
-    db.commit()
+    for i in range(8):
+        message = {
+            "id": str(uuid.uuid4()),
+            "from": options.nickname,
+            "body": options.msg + ' ' + str(i),
+        }
+
+        message['html'] = tornado.template.Template(
+            '<div class="message" id="m{{ message["id"] }}"><b>{{ message["from"] }}: </b>{{ message["body"] }}</div>'
+        ).generate(message=message)
+
+        chat = Chat()
+        chat.json = tornado.escape.json_encode(message)
+        chat.timestamp = int(time.time()*10**6)
+        chat.channel_id = options.channel
+        db.add(chat)
+        db.commit()
