@@ -10,7 +10,6 @@ class ChannelMixin(object):
 
     def set_channel(self, channel):
         cls = ChannelMixin
-        cls.channels[channel] = SuperDict(dict())
         cls.channels[channel]['waiters'] = set()
 
     def wait_for_messages(self, callback, channel, cursor=None):
@@ -25,7 +24,7 @@ class ChannelMixin(object):
             messages = []
             for chat in recent:
                 messages.append(tornado.escape.json_decode(chat))
-            if recent:
+            if index > 0 and recent:
                 logging.info("Sending %r msgs from wait_for_messages for cursor: %s", len(messages), cursor)
                 callback(messages)
                 return
@@ -49,7 +48,7 @@ class ChannelMixin(object):
                     callback(messages[channel])
                 except:
                     logging.error("Error in waiter callback", exc_info=True)
-        for channel in channels:
+        for channel in messages.keys():
             cls.channels[channel]['waiters'] = set()
         for channel in messages.keys():
             for chat in messages[channel]:
