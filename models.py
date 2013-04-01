@@ -29,7 +29,7 @@ class Chat(Base):
             }
         return chat
 
-engine = create_engine('postgresql://' + USER + ':' + PASSWORD + '@localhost/chat')
+engine = create_engine('postgresql://@localhost/chat')
 
 Base.metadata.create_all(engine)
 
